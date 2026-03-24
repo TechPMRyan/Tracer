@@ -16,6 +16,7 @@ build/
 # Database
 *.sqlite
 *.db
+.tracer.db
 
 # OS
 .DS_Store

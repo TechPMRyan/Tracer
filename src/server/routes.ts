@@ -2,17 +2,17 @@ import { Express } from 'express';
 import { loadGraph } from '../graph/storage';
 
 export function registerRoutes(app: Express, dbPath: string): void {
-  // Returns the full graph payload
   app.get('/api/graph', (_req, res) => {
     const graph = loadGraph(dbPath);
     if (!graph) {
-      res.status(404).json({ error: 'No graph found. Run tracer scan first.' });
+      res.status(404).json({
+        error: 'No graph found. Run tracer scan first.',
+      });
       return;
     }
     res.json(graph);
   });
 
-  // Returns a single node by ID
   app.get('/api/node/:id', (req, res) => {
     const graph = loadGraph(dbPath);
     if (!graph) {
@@ -24,6 +24,12 @@ export function registerRoutes(app: Express, dbPath: string): void {
       res.status(404).json({ error: `Node ${req.params.id} not found.` });
       return;
     }
-    res.json(node);
+
+    // Return the node with its connected edges for the detail panel
+    const edges = graph.edges.filter(
+      e => e.sourceId === node.id || e.targetId === node.id
+    );
+
+    res.json({ node, edges });
   });
 }
