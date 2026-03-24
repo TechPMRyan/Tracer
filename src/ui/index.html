@@ -419,6 +419,14 @@
       return KIND_COLOR[node.kind] || '#888888';
     }
 
+    function getLinkOpacitySuffix(link) {
+      switch (link.label) {
+        case 'declares':   return 'cc'; // ~80% — structural skeleton
+        case 'calls':      return '77'; // ~47% — active runtime paths
+        default:           return '33'; // ~20% — supporting / background
+      }
+    }
+
     function getLinkColor(link) {
       const nodes = currentGraphData ? currentGraphData.nodes : [];
       const src = nodes.find(n => n.id === link.sourceId);
@@ -429,7 +437,15 @@
         const tgtDim = !tgt || !tgt.name.toLowerCase().includes(searchQuery);
         if (srcDim && tgtDim) return '#2d323b';
       }
-      return nodeColor(src) + '55';
+      return nodeColor(src) + getLinkOpacitySuffix(link);
+    }
+
+    function getLinkWidth(link) {
+      switch (link.label) {
+        case 'declares': return 2.0;
+        case 'calls':    return 1.2;
+        default:         return 0.7;
+      }
     }
 
     function nodeSize(node) {
@@ -535,7 +551,8 @@
       const proj = camera.projectionMatrix.elements;
       const view = camera.matrixWorldInverse.elements;
 
-      labelEls.forEach(({ el, node }) => {
+      // Project all nodes to screen space
+      const projected = labelEls.map(({ el, node }) => {
         const x = node.x || 0, y = node.y || 0, z = node.z || 0;
         const vx = view[0]*x + view[4]*y + view[8]*z + view[12];
         const vy = view[1]*x + view[5]*y + view[9]*z + view[13];
@@ -544,11 +561,40 @@
         const cx = proj[0]*vx + proj[4]*vy + proj[8]*vz + proj[12]*vw;
         const cy = proj[1]*vx + proj[5]*vy + proj[9]*vz + proj[13]*vw;
         const cw = proj[3]*vx + proj[7]*vy + proj[11]*vz + proj[15]*vw;
-        if (cw <= 0) { el.style.display = 'none'; return; }
-        el.style.display = 'block';
-        el.style.left = (rect.left + (cx/cw + 1) / 2 * W) + 'px';
-        el.style.top  = (rect.top  + (-cy/cw + 1) / 2 * H - 14) + 'px';
-        el.style.color = nodeColor(node) === '#2d323b' ? 'transparent' : '#e0e0e0';
+        const sx = rect.left + (cx/cw + 1) / 2 * W;
+        const sy = rect.top  + (-cy/cw + 1) / 2 * H;
+        return { el, node, sx, sy, visible: cw > 0 };
+      });
+
+      // Sort by priority: hotspots first, then by connectionCount descending
+      projected.sort((a, b) => {
+        const aHot = a.node.connectionCount >= HOTSPOT_THRESHOLD ? 1 : 0;
+        const bHot = b.node.connectionCount >= HOTSPOT_THRESHOLD ? 1 : 0;
+        if (aHot !== bHot) return bHot - aHot;
+        return b.node.connectionCount - a.node.connectionCount;
+      });
+
+      // Place labels, skipping any that overlap an already-placed one
+      const placed = [];
+      const PAD = 4;
+      projected.forEach(({ el, node, sx, sy, visible }) => {
+        if (!visible || nodeColor(node) === '#2d323b') {
+          el.style.display = 'none';
+          return;
+        }
+        // Estimate label rect using char count (monospace ~6.5px per char at 10px)
+        const w = node.name.length * 6.5 + 8;
+        const h = 14;
+        const r = { left: sx - w/2 - PAD, right: sx + w/2 + PAD, top: sy - h - PAD, bottom: sy + PAD };
+        const overlaps = placed.some(p => !(r.right < p.left || r.left > p.right || r.bottom < p.top || r.top > p.bottom));
+        if (overlaps) {
+          el.style.display = 'none';
+        } else {
+          el.style.display = 'block';
+          el.style.left = sx + 'px';
+          el.style.top  = (sy - 14) + 'px';
+          placed.push(r);
+        }
       });
 
       labelRafId = requestAnimationFrame(tickLabels);
@@ -613,7 +659,7 @@
         .nodeOpacity(0.88)
         .nodeResolution(16)
         .linkColor(getLinkColor)
-        .linkWidth(1.2)
+        .linkWidth(getLinkWidth)
         .linkOpacity(1)
         .linkDirectionalParticles(link => {
           const sourceNode = gData.nodes.find(n => n.id === link.sourceId);
@@ -634,7 +680,8 @@
           resetPanel();
         });
 
-      fg.d3Force('charge').strength(-120);
+      fg.d3Force('charge').strength(-400);
+      fg.d3Force('link').distance(80);
       applyLabels();
     }
 
