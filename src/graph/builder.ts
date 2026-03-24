@@ -23,6 +23,7 @@ function buildNodes(parsed: ParsedNode[]): GraphNode[] {
     filePath: p.filePath,
     line: p.line,
     connectionCount: 0,
+    ...(p.routes?.length ? { routes: p.routes } : {}),
   }));
 }
 

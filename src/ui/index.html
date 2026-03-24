@@ -148,6 +148,15 @@
       margin: 0 3px 4px 0;
       cursor: pointer;
       transition: border-color 0.15s, color 0.15s, background 0.15s;
+      max-width: 100%;
+      overflow: hidden;
+    }
+
+    .chip > span:not(.chip-arrow) {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
     }
 
     .chip:hover { border-color: #61afef; color: #e0e0e0; }
@@ -177,6 +186,8 @@
       font-size: 11px;
       color: #555;
       line-height: 1.6;
+      overflow-wrap: break-word;
+      word-break: break-all;
     }
 
     .source-box span { color: #888; }
@@ -190,6 +201,78 @@
       font-size: 11px;
       line-height: 1.6;
     }
+
+    /* Routes */
+    .route-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0;
+      border-bottom: 1px solid #1d2026;
+      font-size: 11px;
+    }
+
+    .route-row:last-child { border-bottom: none; }
+
+    .route-method {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      min-width: 42px;
+      text-align: center;
+      padding: 2px 5px;
+      border-radius: 3px;
+    }
+
+    .route-method.GET    { color: #98c379; background: rgba(152,195,121,0.1); }
+    .route-method.POST   { color: #61afef; background: rgba(97,175,239,0.1); }
+    .route-method.PUT    { color: #e5c07b; background: rgba(229,192,123,0.1); }
+    .route-method.PATCH  { color: #e5c07b; background: rgba(229,192,123,0.1); }
+    .route-method.DELETE { color: #e06c75; background: rgba(224,108,117,0.1); }
+
+    .route-path {
+      color: #888;
+      font-size: 11px;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Idle panel state */
+    .idle-header {
+      font-size: 12px;
+      color: #666;
+      line-height: 1.7;
+      margin-bottom: 14px;
+    }
+
+    .idle-counts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .idle-count-pill {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 3px;
+      border: 1px solid #2c313a;
+      color: #666;
+    }
+
+    .idle-count-pill span { color: #aaa; }
+
+    .idle-hotspot-hint {
+      font-size: 11px;
+      color: #555;
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+
+    .idle-hotspot-hint strong { color: #e06c75; font-weight: normal; }
 
     /* Panel collapse button */
     #panel-collapse-btn {
@@ -337,12 +420,31 @@
       gap: 5px;
       font-size: 12px;
       color: #666;
+      cursor: pointer;
+      user-select: none;
+      transition: opacity 0.15s, color 0.15s;
     }
+
+    .legend-item:hover { color: #999; }
+    .legend-item.dimmed { opacity: 0.25; }
 
     .legend-dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
+    }
+
+    /* Loading */
+    @keyframes ellipsis {
+      0%   { content: '';   }
+      33%  { content: '.';  }
+      66%  { content: '..'; }
+      100% { content: '...'; }
+    }
+
+    #loading::after {
+      content: '';
+      animation: ellipsis 1.2s steps(1) infinite;
     }
 
     @keyframes panelContentIn {
@@ -378,7 +480,7 @@
     #loading {
       position: fixed;
       top: 50%;
-      left: calc(50% - 140px);
+      left: calc((100vw - 320px) / 2);
       transform: translate(-50%, -50%);
       color: #999;
       font-size: 12px;
@@ -388,7 +490,7 @@
     #error-msg {
       position: fixed;
       top: 50%;
-      left: calc(50% - 140px);
+      left: calc((100vw - 320px) / 2);
       transform: translate(-50%, -50%);
       color: #ef4444;
       font-size: 12px;
@@ -410,11 +512,11 @@
     </div>
     <button id="topbar-labels-toggle" title="Toggle persistent node labels">Labels</button>
     <div id="topbar-legend">
-      <div class="legend-item"><div class="legend-dot" style="background:#61afef"></div>Controller</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#98c379"></div>Service</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#e5c07b"></div>Module</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#c678dd"></div>Model</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#e06c75"></div>Hotspot</div>
+      <div class="legend-item" data-kind="controller"><div class="legend-dot" style="background:#61afef"></div>Controller</div>
+      <div class="legend-item" data-kind="service"><div class="legend-dot" style="background:#98c379"></div>Service</div>
+      <div class="legend-item" data-kind="module"><div class="legend-dot" style="background:#e5c07b"></div>Module</div>
+      <div class="legend-item" data-kind="model"><div class="legend-dot" style="background:#c678dd"></div>Model</div>
+      <div class="legend-item" style="cursor:default"><div class="legend-dot" style="background:#e06c75"></div>Hotspot</div>
     </div>
   </div>
 
@@ -423,7 +525,7 @@
 
   <div id="panel">
     <div id="panel-header">
-      <button id="panel-collapse-btn" title="Collapse panel">&#8249;</button>
+      <button id="panel-collapse-btn" title="Collapse panel">&#8250;</button>
       <div id="panel-title">Node Inspector</div>
       <div id="panel-name">Click a node</div>
       <div id="panel-meta"></div>
@@ -433,9 +535,9 @@
     </div>
   </div>
 
-  <div id="panel-reopen-tab" title="Open panel">&#8250;</div>
+  <div id="panel-reopen-tab" title="Open panel">&#8249;</div>
 
-  <div id="loading">SCANNING ARCHITECTURE...</div>
+  <div id="loading">SCANNING ARCHITECTURE</div>
   <div id="error-msg"></div>
 
   <script src="https://unpkg.com/3d-force-graph@1/dist/3d-force-graph.min.js"></script>
@@ -452,6 +554,10 @@
     let searchQuery = '';
     let selectedNodeId = null;
     let connectedNodeIds = new Set();
+    let currentGraph = null;
+
+    // Kind visibility filters — all on by default
+    const activeKindFilters = new Set(['controller', 'service', 'module', 'model']);
 
     function lightenHex(hex, amt) {
       const h = hex.replace('#', '');
@@ -462,6 +568,9 @@
     }
 
     function nodeColor(node) {
+      // Kind filter
+      if (!activeKindFilters.has(node.kind)) return '#2d323b';
+
       const base = node.connectionCount >= HOTSPOT_THRESHOLD ? '#e06c75' : (KIND_COLOR[node.kind] || '#888888');
       if (selectedNodeId) {
         if (node.id === selectedNodeId) return lightenHex(base, 55);
@@ -475,15 +584,21 @@
 
     function getLinkOpacitySuffix(link) {
       switch (link.label) {
-        case 'declares':   return 'cc'; // ~80% — structural skeleton
-        case 'calls':      return '77'; // ~47% — active runtime paths
-        default:           return '33'; // ~20% — supporting / background
+        case 'declares':   return 'cc';
+        case 'calls':      return '77';
+        default:           return '33';
       }
     }
 
     function getLinkColor(link) {
       const nodes = currentGraphData ? currentGraphData.nodes : [];
       const src = nodes.find(n => n.id === link.sourceId);
+      const tgt = nodes.find(n => n.id === link.targetId);
+
+      // Dim links where either endpoint is filtered out
+      if (src && !activeKindFilters.has(src.kind)) return '#2d323b';
+      if (tgt && !activeKindFilters.has(tgt.kind)) return '#2d323b';
+
       if (!src) return '#33333355';
       if (selectedNodeId) {
         const srcIsSelected = link.sourceId === selectedNodeId || link.targetId === selectedNodeId;
@@ -491,7 +606,6 @@
         if (!srcIsSelected && !srcIsConnected) return '#2d323b';
       }
       if (searchQuery) {
-        const tgt = nodes.find(n => n.id === link.targetId);
         const srcDim = !src.name.toLowerCase().includes(searchQuery);
         const tgtDim = !tgt || !tgt.name.toLowerCase().includes(searchQuery);
         if (srcDim && tgtDim) return '#2d323b';
@@ -522,12 +636,12 @@
       if (collapsed) {
         panel.classList.add('collapsed');
         topbar.classList.add('panel-collapsed');
-        collapseBtn.innerHTML = '&#8250;';
+        collapseBtn.innerHTML = '&#8249;';
         reopenTab.classList.add('visible');
       } else {
         panel.classList.remove('collapsed');
         topbar.classList.remove('panel-collapsed');
-        collapseBtn.innerHTML = '&#8249;';
+        collapseBtn.innerHTML = '&#8250;';
         reopenTab.classList.remove('visible');
       }
       localStorage.setItem('tracer-panel-collapsed', collapsed ? '1' : '0');
@@ -580,8 +694,60 @@
       }
     });
 
-    // Persistent node labels toggle
-    let labelsVisible = localStorage.getItem('tracer-labels-visible') === 'true';
+    // Keyboard shortcuts
+    document.addEventListener('keydown', e => {
+      const tag = document.activeElement.tagName;
+      const isTyping = tag === 'INPUT' || tag === 'TEXTAREA';
+
+      // / → focus search
+      if (e.key === '/' && !isTyping) {
+        e.preventDefault();
+        searchInput.focus();
+        searchInput.select();
+      }
+
+      // [ → toggle panel
+      if (e.key === '[' && !isTyping) {
+        setPanelCollapsed(!panel.classList.contains('collapsed'));
+      }
+
+      // Escape → deselect node (when not in search)
+      if (e.key === 'Escape' && !isTyping && selectedNodeId) {
+        clearActiveChip();
+        resetPanel();
+        selectedNodeId = null;
+        connectedNodeIds = new Set();
+        if (fg) {
+          fg.nodeColor(nodeColor);
+          fg.nodeVal(nodeSize);
+          fg.linkColor(getLinkColor);
+        }
+      }
+    });
+
+    // Legend kind filters
+    document.querySelectorAll('.legend-item[data-kind]').forEach(item => {
+      item.addEventListener('click', () => {
+        const kind = item.dataset.kind;
+        if (activeKindFilters.has(kind)) {
+          // Don't allow filtering out all kinds
+          if (activeKindFilters.size === 1) return;
+          activeKindFilters.delete(kind);
+          item.classList.add('dimmed');
+        } else {
+          activeKindFilters.add(kind);
+          item.classList.remove('dimmed');
+        }
+        if (fg) {
+          fg.nodeColor(nodeColor);
+          fg.linkColor(getLinkColor);
+        }
+      });
+    });
+
+    // Persistent node labels toggle — on by default
+    const storedLabels = localStorage.getItem('tracer-labels-visible');
+    let labelsVisible = storedLabels === null ? true : storedLabels === 'true';
     const labelsToggle = document.getElementById('topbar-labels-toggle');
     const labelsOverlay = document.getElementById('labels-overlay');
     let labelEls = [];
@@ -611,7 +777,6 @@
       const proj = camera.projectionMatrix.elements;
       const view = camera.matrixWorldInverse.elements;
 
-      // Project all nodes to screen space
       const projected = labelEls.map(({ el, node }) => {
         const x = node.x || 0, y = node.y || 0, z = node.z || 0;
         const vx = view[0]*x + view[4]*y + view[8]*z + view[12];
@@ -626,7 +791,6 @@
         return { el, node, sx, sy, visible: cw > 0 };
       });
 
-      // Sort by priority: hotspots first, then by connectionCount descending
       projected.sort((a, b) => {
         const aHot = a.node.connectionCount >= HOTSPOT_THRESHOLD ? 1 : 0;
         const bHot = b.node.connectionCount >= HOTSPOT_THRESHOLD ? 1 : 0;
@@ -634,7 +798,6 @@
         return b.node.connectionCount - a.node.connectionCount;
       });
 
-      // Place labels, skipping any that overlap an already-placed one
       const placed = [];
       const PAD = 4;
       projected.forEach(({ el, node, sx, sy, visible }) => {
@@ -642,7 +805,6 @@
           el.style.display = 'none';
           return;
         }
-        // Estimate label rect using char count (monospace ~6.5px per char at 10px)
         const w = node.name.length * 6.5 + 8;
         const h = 14;
         const r = { left: sx - w/2 - PAD, right: sx + w/2 + PAD, top: sy - h - PAD, bottom: sy + PAD };
@@ -694,6 +856,8 @@
     }
 
     function renderGraph(graph) {
+      currentGraph = graph;
+
       document.getElementById('topbar-stats').textContent =
         `${graph.nodes.length} nodes  ·  ${graph.edges.length} edges`;
 
@@ -748,8 +912,10 @@
       fg.d3Force('charge').strength(-400);
       fg.d3Force('link').distance(80);
 
-      // Resize canvas to actual container dimensions after layout settles
       fg.width(container.clientWidth).height(container.clientHeight);
+
+      // Populate idle panel state now that we have graph data
+      resetPanel();
 
       applyLabels();
     }
@@ -769,7 +935,6 @@
       showPanel(node, graph);
       const nx = node.x || 0, ny = node.y || 0, nz = node.z || 0;
       const cam = fg.camera();
-      // Approach from the camera's current direction so zoom works at any position
       const dx = cam.position.x - nx;
       const dy = cam.position.y - ny;
       const dz = cam.position.z - nz;
@@ -791,11 +956,12 @@
     }
 
     function showPanel(node, graph) {
+      document.getElementById('panel-title').textContent = 'Node Inspector';
       const nameEl = document.getElementById('panel-name');
       nameEl.textContent = node.name;
       nameEl.style.color = nodeColor(node);
 
-      // Kind badge + in/out counts
+      // Kind badge + connection direction counts
       const meta = document.getElementById('panel-meta');
       meta.innerHTML = '';
       const badge = document.createElement('span');
@@ -808,40 +974,17 @@
       const inEdges  = graph.edges.filter(e => e.targetId === node.id);
       const stat = document.createElement('span');
       stat.className = 'conn-stat';
-      stat.innerHTML = `<span>${inEdges.length}</span> in &nbsp;<span>${outEdges.length}</span> out`;
+      stat.innerHTML = `calls <span>${outEdges.length}</span> &nbsp;·&nbsp; called by <span>${inEdges.length}</span>`;
       meta.appendChild(stat);
 
       const body = document.getElementById('panel-body');
       body.innerHTML = '';
       body.classList.remove('panel-content-in');
-      void body.offsetWidth; // force reflow
+      void body.offsetWidth;
       body.classList.add('panel-content-in');
       setTimeout(() => body.classList.remove('panel-content-in'), 200);
 
-      // Declaring module
-      const declaredBy = graph.edges.find(e => e.targetId === node.id && e.label === 'declares');
-      if (declaredBy) {
-        const mod = graph.nodes.find(n => n.id === declaredBy.sourceId);
-        if (mod) {
-          const s = makeSection('Module');
-          const chip = makeChip(mod, declaredBy.label, graph);
-          s.appendChild(chip);
-          body.appendChild(s);
-        }
-      }
-
-      // Source location
-      const src = makeSection('Source');
-      const box = document.createElement('div');
-      box.className = 'source-box';
-      const fileName = node.filePath.split(/[\\/]/).pop();
-      const relPath = node.filePath.replace(/\\/g, '/').split('/src/').pop() || fileName;
-      box.innerHTML = `<span>${fileName}</span>  line ${node.line}<br><span style="font-size:10px;color:#444">${relPath}</span>`;
-      box.title = node.filePath;
-      src.appendChild(box);
-      body.appendChild(src);
-
-      // Hotspot warning
+      // 1. Hotspot warning — first if applicable
       if (node.connectionCount >= HOTSPOT_THRESHOLD) {
         const s = makeSection('Hotspot');
         const w = document.createElement('div');
@@ -851,7 +994,26 @@
         body.appendChild(s);
       }
 
-      // Outgoing connections
+      // 2. Routes — controllers only (requires routes on GraphNode)
+      if (node.kind === 'controller' && node.routes && node.routes.length) {
+        const s = makeSection(`Routes (${node.routes.length})`);
+        for (const route of node.routes) {
+          const row = document.createElement('div');
+          row.className = 'route-row';
+          const method = document.createElement('span');
+          method.className = `route-method ${route.method}`;
+          method.textContent = route.method;
+          const routePath = document.createElement('span');
+          routePath.className = 'route-path';
+          routePath.textContent = route.path;
+          row.appendChild(method);
+          row.appendChild(routePath);
+          s.appendChild(row);
+        }
+        body.appendChild(s);
+      }
+
+      // 3. Outgoing connections
       if (outEdges.length) {
         const s = makeSection(`Calls (${outEdges.length})`);
         for (const edge of outEdges) {
@@ -872,7 +1034,7 @@
         body.appendChild(s);
       }
 
-      // Incoming connections
+      // 4. Incoming connections
       if (inEdges.length) {
         const s = makeSection(`Called by (${inEdges.length})`);
         for (const edge of inEdges) {
@@ -892,15 +1054,89 @@
         }
         body.appendChild(s);
       }
+
+      // 5. Declaring module
+      const declaredBy = graph.edges.find(e => e.targetId === node.id && e.label === 'declares');
+      if (declaredBy) {
+        const mod = graph.nodes.find(n => n.id === declaredBy.sourceId);
+        if (mod) {
+          const s = makeSection('Module');
+          const chip = makeChip(mod, declaredBy.label, graph);
+          s.appendChild(chip);
+          body.appendChild(s);
+        }
+      }
+
+      // 6. Source location
+      const src = makeSection('Source');
+      const box = document.createElement('div');
+      box.className = 'source-box';
+      const fileName = node.filePath.split(/[\\/]/).pop();
+      const relPath = node.filePath.replace(/\\/g, '/').split('/src/').pop() || fileName;
+      box.innerHTML = `<span>${fileName}</span>  line ${node.line}<br><span style="font-size:10px;color:#444">${relPath}</span>`;
+      box.title = node.filePath;
+      src.appendChild(box);
+      body.appendChild(src);
     }
 
     function resetPanel() {
+      document.getElementById('panel-title').textContent = '';
       const nameEl = document.getElementById('panel-name');
       nameEl.textContent = 'Click a node';
       nameEl.style.color = '#666';
       document.getElementById('panel-meta').textContent = '';
-      document.getElementById('panel-body').innerHTML =
-        '<div id="panel-empty" style="color:#555;font-size:12px;line-height:1.7;padding-top:4px">Select a node to inspect it.</div>';
+
+      const body = document.getElementById('panel-body');
+
+      // If graph is loaded, show a useful idle state
+      if (currentGraph) {
+        const hotspots = currentGraph.nodes.filter(n => n.connectionCount >= HOTSPOT_THRESHOLD);
+        const counts = { controller: 0, service: 0, module: 0, model: 0 };
+        currentGraph.nodes.forEach(n => { if (counts[n.kind] !== undefined) counts[n.kind]++; });
+
+        body.innerHTML = '';
+
+        const hint = document.createElement('div');
+        hint.className = 'idle-header';
+        hint.textContent = 'Select any node to explore its connections.';
+        body.appendChild(hint);
+
+        // Node type counts
+        const pills = document.createElement('div');
+        pills.className = 'idle-counts';
+        [
+          ['controller', '#61afef'],
+          ['service',    '#98c379'],
+          ['module',     '#e5c07b'],
+          ['model',      '#c678dd'],
+        ].forEach(([kind, color]) => {
+          if (!counts[kind]) return;
+          const pill = document.createElement('div');
+          pill.className = 'idle-count-pill';
+          pill.style.borderColor = color + '44';
+          pill.innerHTML = `<span style="color:${color}">${counts[kind]}</span> ${kind}s`;
+          pills.appendChild(pill);
+        });
+        body.appendChild(pills);
+
+        // Hotspot guidance
+        if (hotspots.length) {
+          const hotspotHint = document.createElement('div');
+          hotspotHint.className = 'idle-hotspot-hint';
+          hotspotHint.innerHTML = `<strong>${hotspots.length} hotspot${hotspots.length > 1 ? 's' : ''}</strong> detected — nodes with the most connections and widest blast radius. Start here.`;
+          body.appendChild(hotspotHint);
+
+          // Top hotspot chips
+          const sorted = [...hotspots].sort((a, b) => b.connectionCount - a.connectionCount).slice(0, 5);
+          const s = makeSection('Hotspots');
+          sorted.forEach(node => {
+            s.appendChild(makeChip(node, '', currentGraph));
+          });
+          body.appendChild(s);
+        }
+      } else {
+        body.innerHTML = '<div id="panel-empty" style="color:#555;font-size:12px;line-height:1.7;padding-top:4px">Select a node to inspect it.</div>';
+      }
     }
 
     function makeSection(title) {

@@ -3,7 +3,13 @@ import { loadGraph } from '../graph/storage';
 
 export function registerRoutes(app: Express, dbPath: string): void {
   app.get('/api/graph', (_req, res) => {
-    const graph = loadGraph(dbPath);
+    let graph: ReturnType<typeof loadGraph>;
+    try {
+      graph = loadGraph(dbPath);
+    } catch {
+      res.status(500).json({ error: 'Graph data is corrupt. Run tracer scan to rebuild.' });
+      return;
+    }
     if (!graph) {
       res.status(404).json({
         error: 'No graph found. Run tracer scan first.',
@@ -14,7 +20,13 @@ export function registerRoutes(app: Express, dbPath: string): void {
   });
 
   app.get('/api/node/:id', (req, res) => {
-    const graph = loadGraph(dbPath);
+    let graph: ReturnType<typeof loadGraph>;
+    try {
+      graph = loadGraph(dbPath);
+    } catch {
+      res.status(500).json({ error: 'Graph data is corrupt. Run tracer scan to rebuild.' });
+      return;
+    }
     if (!graph) {
       res.status(404).json({ error: 'No graph found. Run tracer scan first.' });
       return;

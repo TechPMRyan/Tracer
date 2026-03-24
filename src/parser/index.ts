@@ -48,7 +48,7 @@ export async function parseProject(
 }
 
 // Recursively finds all .ts files, skipping node_modules and dist.
-function walkTypeScriptFiles(dir: string): string[] {
+export function walkTypeScriptFiles(dir: string): string[] {
   const SKIP = new Set(['node_modules', 'dist', 'build', '.git']);
   const results: string[] = [];
 

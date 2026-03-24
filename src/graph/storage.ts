@@ -10,10 +10,6 @@ export function loadGraph(dbPath: string): Graph | null {
   const jsonPath = dbPath.replace(/\.db$/, '.json');
   if (!fs.existsSync(jsonPath)) return null;
 
-  try {
-    const raw = fs.readFileSync(jsonPath, 'utf8');
-    return JSON.parse(raw) as Graph;
-  } catch {
-    return null;
-  }
+  const raw = fs.readFileSync(jsonPath, 'utf8');
+  return JSON.parse(raw) as Graph;
 }

@@ -1,4 +1,4 @@
-import { NodeKind } from '../parser/types';
+import { NodeKind, ParsedRoute } from '../parser/types';
 
 export interface GraphNode {
   id: string;
@@ -7,6 +7,7 @@ export interface GraphNode {
   filePath: string;
   line: number;
   connectionCount: number;   // computed — used for hotspot detection
+  routes?: ParsedRoute[];    // controllers only — HTTP routes extracted from decorators
 }
 
 export interface GraphEdge {
