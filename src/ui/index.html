@@ -27,19 +27,22 @@
 
     /* Panel */
     #panel {
-      width: 280px;
-      min-width: 0;
-      height: 100vh;
+      position: fixed;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 320px;
       background: rgba(33,37,43,0.97);
       border-left: 1px solid #1d2026;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      z-index: 10;
-      transition: width 200ms ease;
+      z-index: 15;
+      transform: translateX(0);
+      transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    #panel.collapsed { width: 0; border-left: none; }
+    #panel.collapsed { transform: translateX(320px); border-left: none; }
 
     #panel.collapsed #panel-header,
     #panel.collapsed #panel-body {
@@ -71,9 +74,37 @@
     }
 
     #panel-meta {
-      margin-top: 5px;
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .kind-badge {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 2px 7px;
+      border-radius: 3px;
+      border: 1px solid currentColor;
+      opacity: 0.85;
+    }
+
+    .conn-stat {
       font-size: 11px;
-      color: #888;
+      color: #666;
+    }
+
+    .conn-stat span {
+      color: #aaa;
+    }
+
+    .chip-label {
+      font-size: 10px;
+      color: #555;
+      margin-left: 2px;
     }
 
     #panel-body {
@@ -163,15 +194,15 @@
     /* Panel collapse button */
     #panel-collapse-btn {
       position: absolute;
-      top: 14px;
-      right: 12px;
-      width: 20px;
-      height: 20px;
+      top: 12px;
+      right: 10px;
+      width: 28px;
+      height: 28px;
       background: transparent;
       border: none;
       cursor: pointer;
-      color: #444;
-      font-size: 14px;
+      color: #666;
+      font-size: 18px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -179,7 +210,7 @@
       font-family: inherit;
     }
 
-    #panel-collapse-btn:hover { color: #888; }
+    #panel-collapse-btn:hover { color: #aaa; }
 
     /* Re-open tab */
     #panel-reopen-tab {
@@ -209,7 +240,7 @@
       position: fixed;
       top: 0;
       left: 0;
-      right: 0;
+      right: 320px;
       height: 44px;
       background: rgba(33,37,43,0.92);
       border-bottom: 1px solid #1d2026;
@@ -219,7 +250,7 @@
       gap: 14px;
       z-index: 20;
       backdrop-filter: blur(8px);
-      transition: right 200ms ease;
+      transition: right 250ms cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     #topbar.panel-collapsed { right: 0; }
@@ -314,6 +345,15 @@
       border-radius: 50%;
     }
 
+    @keyframes panelContentIn {
+      from { opacity: 0; transform: translateX(12px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .panel-content-in {
+      animation: panelContentIn 0.2s ease forwards;
+    }
+
     #labels-overlay {
       position: fixed;
       top: 0;
@@ -389,7 +429,7 @@
       <div id="panel-meta"></div>
     </div>
     <div id="panel-body">
-      <div id="panel-empty">Rotate, zoom, and explore.<br><br>Click any node to inspect its connections and source location.</div>
+      <div id="panel-empty">Select a node to inspect it.</div>
     </div>
   </div>
 
@@ -410,13 +450,27 @@
     const HOTSPOT_THRESHOLD = 4;
 
     let searchQuery = '';
+    let selectedNodeId = null;
+    let connectedNodeIds = new Set();
+
+    function lightenHex(hex, amt) {
+      const h = hex.replace('#', '');
+      const r = Math.min(255, parseInt(h.slice(0, 2), 16) + amt);
+      const g = Math.min(255, parseInt(h.slice(2, 4), 16) + amt);
+      const b = Math.min(255, parseInt(h.slice(4, 6), 16) + amt);
+      return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+    }
 
     function nodeColor(node) {
+      const base = node.connectionCount >= HOTSPOT_THRESHOLD ? '#e06c75' : (KIND_COLOR[node.kind] || '#888888');
+      if (selectedNodeId) {
+        if (node.id === selectedNodeId) return lightenHex(base, 55);
+        if (!connectedNodeIds.has(node.id)) return '#2d323b';
+      }
       if (searchQuery && !node.name.toLowerCase().includes(searchQuery)) {
         return '#2d323b';
       }
-      if (node.connectionCount >= HOTSPOT_THRESHOLD) return '#e06c75';
-      return KIND_COLOR[node.kind] || '#888888';
+      return base;
     }
 
     function getLinkOpacitySuffix(link) {
@@ -431,6 +485,11 @@
       const nodes = currentGraphData ? currentGraphData.nodes : [];
       const src = nodes.find(n => n.id === link.sourceId);
       if (!src) return '#33333355';
+      if (selectedNodeId) {
+        const srcIsSelected = link.sourceId === selectedNodeId || link.targetId === selectedNodeId;
+        const srcIsConnected = connectedNodeIds.has(link.sourceId) || connectedNodeIds.has(link.targetId);
+        if (!srcIsSelected && !srcIsConnected) return '#2d323b';
+      }
       if (searchQuery) {
         const tgt = nodes.find(n => n.id === link.targetId);
         const srcDim = !src.name.toLowerCase().includes(searchQuery);
@@ -449,7 +508,8 @@
     }
 
     function nodeSize(node) {
-      return Math.max(3, 3 + node.connectionCount * 1.5);
+      const base = Math.max(3, 3 + node.connectionCount * 1.5);
+      return node.id === selectedNodeId ? base * 1.8 : base;
     }
 
     // Panel collapse
@@ -678,20 +738,46 @@
         .onBackgroundClick(() => {
           clearActiveChip();
           resetPanel();
+          selectedNodeId = null;
+          connectedNodeIds = new Set();
+          fg.nodeColor(nodeColor);
+          fg.nodeVal(nodeSize);
+          fg.linkColor(getLinkColor);
         });
 
       fg.d3Force('charge').strength(-400);
       fg.d3Force('link').distance(80);
+
+      // Resize canvas to actual container dimensions after layout settles
+      fg.width(container.clientWidth).height(container.clientHeight);
+
       applyLabels();
     }
 
     function navigateToNode(node, graph) {
+      selectedNodeId = node.id;
+      connectedNodeIds = new Set();
+      graph.edges.forEach(e => {
+        if (e.sourceId === node.id) connectedNodeIds.add(e.targetId);
+        if (e.targetId === node.id) connectedNodeIds.add(e.sourceId);
+      });
+      fg.nodeColor(nodeColor);
+      fg.nodeVal(nodeSize);
+      fg.linkColor(getLinkColor);
+
+      setPanelCollapsed(false);
       showPanel(node, graph);
-      const dist = 80;
-      const distRatio = 1 + dist / Math.hypot(node.x || 1, node.y || 1, node.z || 1);
+      const nx = node.x || 0, ny = node.y || 0, nz = node.z || 0;
+      const cam = fg.camera();
+      // Approach from the camera's current direction so zoom works at any position
+      const dx = cam.position.x - nx;
+      const dy = cam.position.y - ny;
+      const dz = cam.position.z - nz;
+      const len = Math.hypot(dx, dy, dz) || 1;
+      const dist = 90;
       fg.cameraPosition(
-        { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio },
-        node,
+        { x: nx + (dx / len) * dist, y: ny + (dy / len) * dist, z: nz + (dz / len) * dist },
+        { x: nx, y: ny, z: nz },
         800
       );
     }
@@ -705,52 +791,105 @@
     }
 
     function showPanel(node, graph) {
-      document.getElementById('panel-empty').style.display = 'none';
-
       const nameEl = document.getElementById('panel-name');
       nameEl.textContent = node.name;
       nameEl.style.color = nodeColor(node);
 
-      document.getElementById('panel-meta').textContent =
-        `${node.kind}  ·  ${node.connectionCount} connection${node.connectionCount !== 1 ? 's' : ''}`;
+      // Kind badge + in/out counts
+      const meta = document.getElementById('panel-meta');
+      meta.innerHTML = '';
+      const badge = document.createElement('span');
+      badge.className = 'kind-badge';
+      badge.textContent = node.kind;
+      badge.style.color = nodeColor(node);
+      meta.appendChild(badge);
+
+      const outEdges = graph.edges.filter(e => e.sourceId === node.id);
+      const inEdges  = graph.edges.filter(e => e.targetId === node.id);
+      const stat = document.createElement('span');
+      stat.className = 'conn-stat';
+      stat.innerHTML = `<span>${inEdges.length}</span> in &nbsp;<span>${outEdges.length}</span> out`;
+      meta.appendChild(stat);
 
       const body = document.getElementById('panel-body');
       body.innerHTML = '';
+      body.classList.remove('panel-content-in');
+      void body.offsetWidth; // force reflow
+      body.classList.add('panel-content-in');
+      setTimeout(() => body.classList.remove('panel-content-in'), 200);
 
+      // Declaring module
+      const declaredBy = graph.edges.find(e => e.targetId === node.id && e.label === 'declares');
+      if (declaredBy) {
+        const mod = graph.nodes.find(n => n.id === declaredBy.sourceId);
+        if (mod) {
+          const s = makeSection('Module');
+          const chip = makeChip(mod, declaredBy.label, graph);
+          s.appendChild(chip);
+          body.appendChild(s);
+        }
+      }
+
+      // Source location
       const src = makeSection('Source');
       const box = document.createElement('div');
       box.className = 'source-box';
-      box.innerHTML = `<span>${node.filePath.split(/[\\/]/).pop()}</span><br>Line ${node.line}`;
+      const fileName = node.filePath.split(/[\\/]/).pop();
+      const relPath = node.filePath.replace(/\\/g, '/').split('/src/').pop() || fileName;
+      box.innerHTML = `<span>${fileName}</span>  line ${node.line}<br><span style="font-size:10px;color:#444">${relPath}</span>`;
       box.title = node.filePath;
       src.appendChild(box);
       body.appendChild(src);
 
-      const outEdges = graph.edges.filter(e => e.sourceId === node.id);
-      if (outEdges.length) {
-        const s = makeSection('Calls');
-        for (const edge of outEdges) {
-          const target = graph.nodes.find(n => n.id === edge.targetId);
-          if (target) s.appendChild(makeChip(target, edge.label, graph));
-        }
-        body.appendChild(s);
-      }
-
-      const inEdges = graph.edges.filter(e => e.targetId === node.id);
-      if (inEdges.length) {
-        const s = makeSection('Called by');
-        for (const edge of inEdges) {
-          const source = graph.nodes.find(n => n.id === edge.sourceId);
-          if (source) s.appendChild(makeChip(source, edge.label, graph));
-        }
-        body.appendChild(s);
-      }
-
+      // Hotspot warning
       if (node.connectionCount >= HOTSPOT_THRESHOLD) {
-        const s = makeSection('Warning');
+        const s = makeSection('Hotspot');
         const w = document.createElement('div');
         w.className = 'hotspot-box';
-        w.textContent = `Hotspot — ${node.connectionCount} connections. Changes here have wide blast radius.`;
+        w.textContent = `${node.connectionCount} connections. Changes here have wide blast radius.`;
         s.appendChild(w);
+        body.appendChild(s);
+      }
+
+      // Outgoing connections
+      if (outEdges.length) {
+        const s = makeSection(`Calls (${outEdges.length})`);
+        for (const edge of outEdges) {
+          const target = graph.nodes.find(n => n.id === edge.targetId);
+          if (target) {
+            const wrap = document.createElement('div');
+            wrap.style.display = 'flex';
+            wrap.style.alignItems = 'center';
+            wrap.style.marginBottom = '2px';
+            wrap.appendChild(makeChip(target, edge.label, graph));
+            const lbl = document.createElement('span');
+            lbl.className = 'chip-label';
+            lbl.textContent = edge.label;
+            wrap.appendChild(lbl);
+            s.appendChild(wrap);
+          }
+        }
+        body.appendChild(s);
+      }
+
+      // Incoming connections
+      if (inEdges.length) {
+        const s = makeSection(`Called by (${inEdges.length})`);
+        for (const edge of inEdges) {
+          const source = graph.nodes.find(n => n.id === edge.sourceId);
+          if (source && edge.label !== 'declares') {
+            const wrap = document.createElement('div');
+            wrap.style.display = 'flex';
+            wrap.style.alignItems = 'center';
+            wrap.style.marginBottom = '2px';
+            wrap.appendChild(makeChip(source, edge.label, graph));
+            const lbl = document.createElement('span');
+            lbl.className = 'chip-label';
+            lbl.textContent = edge.label;
+            wrap.appendChild(lbl);
+            s.appendChild(wrap);
+          }
+        }
         body.appendChild(s);
       }
     }
@@ -761,7 +900,7 @@
       nameEl.style.color = '#666';
       document.getElementById('panel-meta').textContent = '';
       document.getElementById('panel-body').innerHTML =
-        '<div id="panel-empty" style="color:#555;font-size:12px;line-height:1.7;padding-top:4px">Rotate, zoom, and explore.<br><br>Click any node to inspect its connections and source location.</div>';
+        '<div id="panel-empty" style="color:#555;font-size:12px;line-height:1.7;padding-top:4px">Select a node to inspect it.</div>';
     }
 
     function makeSection(title) {
