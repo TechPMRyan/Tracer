@@ -16,6 +16,9 @@ build/
 # Graph output
 .tracer.json
 
+# Demo fixtures — local only, not for the repo
+tests/parser/fixtures/ecommerce-app/
+
 # OS
 .DS_Store
 Thumbs.db
