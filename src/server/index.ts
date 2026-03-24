@@ -1,10 +1,12 @@
 import express from 'express';
+import helmet from 'helmet';
 import * as path from 'path';
 import { registerRoutes } from './routes';
 
 export function startServer(port: number, dbPath: string): void {
   const app = express();
 
+  app.use(helmet());
   app.use(express.json());
 
   // Serve the UI

@@ -974,7 +974,11 @@
       const inEdges  = graph.edges.filter(e => e.targetId === node.id);
       const stat = document.createElement('span');
       stat.className = 'conn-stat';
-      stat.innerHTML = `calls <span>${outEdges.length}</span> &nbsp;·&nbsp; called by <span>${inEdges.length}</span>`;
+      const outCount = document.createElement('span');
+      outCount.textContent = String(outEdges.length);
+      const inCount = document.createElement('span');
+      inCount.textContent = String(inEdges.length);
+      stat.append('calls ', outCount, '\u00a0\u00a0·\u00a0\u00a0called by ', inCount);
       meta.appendChild(stat);
 
       const body = document.getElementById('panel-body');
@@ -1073,7 +1077,14 @@
       box.className = 'source-box';
       const fileName = node.filePath.split(/[\\/]/).pop();
       const relPath = node.filePath.replace(/\\/g, '/').split('/src/').pop() || fileName;
-      box.innerHTML = `<span>${fileName}</span>  line ${node.line}<br><span style="font-size:10px;color:#444">${relPath}</span>`;
+      const fileSpan = document.createElement('span');
+      fileSpan.textContent = fileName;
+      const lineText = document.createTextNode(`  line ${node.line}`);
+      const br = document.createElement('br');
+      const pathSpan = document.createElement('span');
+      pathSpan.style.cssText = 'font-size:10px;color:#444';
+      pathSpan.textContent = relPath;
+      box.append(fileSpan, lineText, br, pathSpan);
       box.title = node.filePath;
       src.appendChild(box);
       body.appendChild(src);
@@ -1114,7 +1125,10 @@
           const pill = document.createElement('div');
           pill.className = 'idle-count-pill';
           pill.style.borderColor = color + '44';
-          pill.innerHTML = `<span style="color:${color}">${counts[kind]}</span> ${kind}s`;
+          const countSpan = document.createElement('span');
+          countSpan.style.color = color;
+          countSpan.textContent = String(counts[kind]);
+          pill.append(countSpan, ` ${kind}s`);
           pills.appendChild(pill);
         });
         body.appendChild(pills);
@@ -1123,7 +1137,9 @@
         if (hotspots.length) {
           const hotspotHint = document.createElement('div');
           hotspotHint.className = 'idle-hotspot-hint';
-          hotspotHint.innerHTML = `<strong>${hotspots.length} hotspot${hotspots.length > 1 ? 's' : ''}</strong> detected — nodes with the most connections and widest blast radius. Start here.`;
+          const strong = document.createElement('strong');
+          strong.textContent = `${hotspots.length} hotspot${hotspots.length > 1 ? 's' : ''}`;
+          hotspotHint.append(strong, ' detected \u2014 nodes with the most connections and widest blast radius. Start here.');
           body.appendChild(hotspotHint);
 
           // Top hotspot chips
