@@ -1,0 +1,8 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Tracer allowlist"
+paths = [
+  "tests/parser/fixtures"
+]
