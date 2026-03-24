@@ -13,10 +13,8 @@ build/
 .env.local
 .env.*.local
 
-# Database
-*.sqlite
-*.db
-.tracer.db
+# Graph output
+.tracer.json
 
 # OS
 .DS_Store
