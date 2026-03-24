@@ -314,6 +314,27 @@
       border-radius: 50%;
     }
 
+    #labels-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .node-label {
+      position: absolute;
+      font-size: 10px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      white-space: nowrap;
+      transform: translateX(-50%);
+      text-shadow: 0 0 6px #282c34, 0 0 6px #282c34, 0 0 6px #282c34;
+      pointer-events: none;
+      display: none;
+    }
+
     #loading {
       position: fixed;
       top: 50%;
@@ -358,6 +379,7 @@
   </div>
 
   <div id="graph"></div>
+  <div id="labels-overlay"></div>
 
   <div id="panel">
     <div id="panel-header">
@@ -376,7 +398,6 @@
   <div id="loading">SCANNING ARCHITECTURE...</div>
   <div id="error-msg"></div>
 
-  <script src="https://unpkg.com/three@0.170.0/build/three.min.js"></script>
   <script src="https://unpkg.com/3d-force-graph@1/dist/3d-force-graph.min.js"></script>
   <script>
     const KIND_COLOR = {
@@ -486,31 +507,61 @@
     // Persistent node labels toggle
     let labelsVisible = localStorage.getItem('tracer-labels-visible') === 'true';
     const labelsToggle = document.getElementById('topbar-labels-toggle');
+    const labelsOverlay = document.getElementById('labels-overlay');
+    let labelEls = [];
+    let labelRafId = null;
 
-    function makeLabelObject(node) {
-      const canvas = document.createElement('canvas');
-      canvas.width = 256;
-      canvas.height = 40;
-      const ctx = canvas.getContext('2d');
-      ctx.font = '22px "SF Mono", "Fira Code", monospace';
-      ctx.fillStyle = nodeColor(node) === '#2d323b' ? 'transparent' : nodeColor(node);
-      ctx.fillText(node.name, 4, 28);
-      const texture = new THREE.CanvasTexture(canvas);
-      const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
-      const sprite = new THREE.Sprite(material);
-      sprite.scale.set(20, 3.2, 1);
-      sprite.position.set(0, 4, 0);
-      return sprite;
+    function buildLabels() {
+      labelsOverlay.innerHTML = '';
+      labelEls = [];
+      if (!currentGraphData) return;
+      currentGraphData.nodes.forEach(node => {
+        const el = document.createElement('div');
+        el.className = 'node-label';
+        el.textContent = node.name;
+        el.style.color = '#e0e0e0';
+        labelsOverlay.appendChild(el);
+        labelEls.push({ el, node });
+      });
+    }
+
+    function tickLabels() {
+      if (!labelsVisible || !fg) return;
+      const camera = fg.camera();
+      const renderer = fg.renderer();
+      const rect = renderer.domElement.getBoundingClientRect();
+      const W = rect.width;
+      const H = rect.height;
+      const proj = camera.projectionMatrix.elements;
+      const view = camera.matrixWorldInverse.elements;
+
+      labelEls.forEach(({ el, node }) => {
+        const x = node.x || 0, y = node.y || 0, z = node.z || 0;
+        const vx = view[0]*x + view[4]*y + view[8]*z + view[12];
+        const vy = view[1]*x + view[5]*y + view[9]*z + view[13];
+        const vz = view[2]*x + view[6]*y + view[10]*z + view[14];
+        const vw = view[3]*x + view[7]*y + view[11]*z + view[15];
+        const cx = proj[0]*vx + proj[4]*vy + proj[8]*vz + proj[12]*vw;
+        const cy = proj[1]*vx + proj[5]*vy + proj[9]*vz + proj[13]*vw;
+        const cw = proj[3]*vx + proj[7]*vy + proj[11]*vz + proj[15]*vw;
+        if (cw <= 0) { el.style.display = 'none'; return; }
+        el.style.display = 'block';
+        el.style.left = (rect.left + (cx/cw + 1) / 2 * W) + 'px';
+        el.style.top  = (rect.top  + (-cy/cw + 1) / 2 * H - 14) + 'px';
+        el.style.color = nodeColor(node) === '#2d323b' ? 'transparent' : '#e0e0e0';
+      });
+
+      labelRafId = requestAnimationFrame(tickLabels);
     }
 
     function applyLabels() {
-      if (!fg) return;
       if (labelsVisible) {
-        fg.nodeThreeObjectExtend(true);
-        fg.nodeThreeObject(node => makeLabelObject(node));
+        buildLabels();
+        tickLabels();
       } else {
-        fg.nodeThreeObjectExtend(false);
-        fg.nodeThreeObject(null);
+        if (labelRafId) { cancelAnimationFrame(labelRafId); labelRafId = null; }
+        labelsOverlay.innerHTML = '';
+        labelEls = [];
       }
       labelsToggle.classList.toggle('active', labelsVisible);
       localStorage.setItem('tracer-labels-visible', labelsVisible);
