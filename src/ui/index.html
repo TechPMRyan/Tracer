@@ -498,6 +498,23 @@
       line-height: 1.8;
       display: none;
     }
+
+    #search-no-results {
+      position: fixed;
+      top: 50%;
+      left: calc((100vw - 320px) / 2);
+      transform: translate(-50%, -50%);
+      color: #7a8299;
+      font-size: 12px;
+      text-align: center;
+      letter-spacing: 0.05em;
+      pointer-events: none;
+      display: none;
+    }
+
+    #search-no-results span {
+      color: #9099a8;
+    }
   </style>
 </head>
 <body>
@@ -539,6 +556,7 @@
 
   <div id="loading">SCANNING ARCHITECTURE</div>
   <div id="error-msg"></div>
+  <div id="search-no-results"></div>
 
   <script src="https://unpkg.com/3d-force-graph@1/dist/3d-force-graph.min.js"></script>
   <script>
@@ -665,11 +683,32 @@
     const searchInput = document.getElementById('topbar-search');
     const searchClear = document.getElementById('topbar-search-clear');
 
+    const noResultsEl = document.getElementById('search-no-results');
+
     function applySearch(query) {
       if (!fg || !currentGraphData) return;
       searchQuery = query.trim().toLowerCase();
       fg.nodeColor(nodeColor);
       fg.linkColor(getLinkColor);
+
+      if (searchQuery) {
+        const matchCount = currentGraphData.nodes.filter(
+          n => n.name.toLowerCase().includes(searchQuery)
+        ).length;
+        if (matchCount === 0) {
+          noResultsEl.textContent = '';
+          const prefix = document.createTextNode('No results for \u201c');
+          const term = document.createElement('span');
+          term.textContent = searchQuery;
+          const suffix = document.createTextNode('\u201d');
+          noResultsEl.append(prefix, term, suffix);
+          noResultsEl.style.display = 'block';
+        } else {
+          noResultsEl.style.display = 'none';
+        }
+      } else {
+        noResultsEl.style.display = 'none';
+      }
     }
 
     searchInput.addEventListener('input', () => {
