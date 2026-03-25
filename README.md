@@ -4,6 +4,14 @@
 
 ---
 
+![Tracer — architecture graph](docs/Tracer.png)
+*The full architecture graph — controllers, services, modules, and models rendered as a live 3D force layout.*
+
+![Tracer — node inspector](docs/Tracer-node.png)
+*Clicking any node opens the inspector — HTTP routes, outgoing calls, callers, declaring module, and source location.*
+
+---
+
 ## The Problem
 
 Large codebases grow faster than anyone's understanding of them. Routes call controllers, controllers call services, services call models. Nobody has a complete picture of how it connects. When an engineer changes a model or refactors a service, they're guessing at the blast radius. When a PM scopes a feature, they're guessing at the complexity.
