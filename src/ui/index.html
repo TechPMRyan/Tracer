@@ -231,7 +231,7 @@
     .route-method.DELETE { color: #e06c75; background: rgba(224,108,117,0.1); }
 
     .route-path {
-      color: #9099a8;
+      color: #abb2bf;
       font-size: 11px;
       flex: 1;
       min-width: 0;
@@ -377,7 +377,7 @@
     }
 
     #topbar-search {
-      width: 200px;
+      width: 240px;
       background: transparent;
       border: 1px solid #3e4451;
       border-radius: 3px;
@@ -386,10 +386,11 @@
       font-family: inherit;
       color: #aaa;
       outline: none;
+      transition: width 0.2s ease, border-color 0.15s;
     }
 
     #topbar-search::placeholder { color: #7a8299; }
-    #topbar-search:focus { border-color: #444; }
+    #topbar-search:focus { border-color: #61afef; }
 
     #topbar-search-clear {
       position: absolute;
@@ -480,7 +481,7 @@
     #loading {
       position: fixed;
       top: 50%;
-      left: calc((100vw - 320px) / 2);
+      left: calc((100vw - var(--panel-w, 320px)) / 2);
       transform: translate(-50%, -50%);
       color: #999;
       font-size: 12px;
@@ -490,7 +491,7 @@
     #error-msg {
       position: fixed;
       top: 50%;
-      left: calc((100vw - 320px) / 2);
+      left: calc((100vw - var(--panel-w, 320px)) / 2);
       transform: translate(-50%, -50%);
       color: #f87171;
       font-size: 12px;
@@ -502,7 +503,7 @@
     #search-no-results {
       position: fixed;
       top: 50%;
-      left: calc((100vw - 320px) / 2);
+      left: calc((100vw - var(--panel-w, 320px)) / 2);
       transform: translate(-50%, -50%);
       color: #7a8299;
       font-size: 12px;
@@ -514,6 +515,44 @@
 
     #search-no-results span {
       color: #9099a8;
+    }
+
+    /* Responsiveness */
+    @media (max-width: 900px) {
+      #topbar-legend { display: none; }
+    }
+
+    @media (max-width: 700px) {
+      #panel {
+        width: 100vw;
+        top: auto;
+        height: 50vh;
+        border-left: none;
+        border-top: 1px solid #1d2026;
+        transform: translateY(0);
+      }
+
+      #panel.collapsed { transform: translateY(100vh); }
+
+      #topbar {
+        right: 0;
+      }
+
+      #topbar-stats { display: none; }
+
+      #topbar-search { width: 160px; }
+
+      #panel-reopen-tab {
+        right: 50%;
+        top: auto;
+        bottom: 0;
+        transform: translateX(50%) rotate(90deg);
+        width: 48px;
+        height: 24px;
+        border-radius: 4px 4px 0 0;
+        border-left: none;
+        border-top: 1px solid #1d2026;
+      }
     }
   </style>
 </head>
@@ -548,7 +587,7 @@
       <div id="panel-meta"></div>
     </div>
     <div id="panel-body">
-      <div id="panel-empty">Select a node to inspect it.</div>
+      <div id="panel-empty">Click any node to inspect its routes, dependencies, and connections.</div>
     </div>
   </div>
 
@@ -656,11 +695,13 @@
         topbar.classList.add('panel-collapsed');
         collapseBtn.innerHTML = '&#8249;';
         reopenTab.classList.add('visible');
+        document.documentElement.style.setProperty('--panel-w', '0px');
       } else {
         panel.classList.remove('collapsed');
         topbar.classList.remove('panel-collapsed');
         collapseBtn.innerHTML = '&#8250;';
         reopenTab.classList.remove('visible');
+        document.documentElement.style.setProperty('--panel-w', '320px');
       }
       localStorage.setItem('tracer-panel-collapsed', collapsed ? '1' : '0');
     }
@@ -670,6 +711,9 @@
     });
 
     reopenTab.addEventListener('click', () => setPanelCollapsed(false));
+
+    // Initialize panel-w CSS variable before first render
+    document.documentElement.style.setProperty('--panel-w', '320px');
 
     if (localStorage.getItem('tracer-panel-collapsed') === '1') {
       setPanelCollapsed(true);

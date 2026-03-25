@@ -4,11 +4,11 @@
 
 ---
 
-![Tracer — architecture graph](docs/Tracer.png)
-*The full architecture graph — controllers, services, modules, and models rendered as a live 3D force layout.*
+![Tracer - architecture graph](docs/Tracer.png)
+*The full architecture graph - controllers, services, modules, and models rendered as a live 3D force layout.*
 
-![Tracer — node inspector](docs/Tracer-node.png)
-*Clicking any node opens the inspector — HTTP routes, outgoing calls, callers, declaring module, and source location.*
+![Tracer - node inspector](docs/Tracer-node.png)
+*Clicking any node opens the inspector - HTTP routes, outgoing calls, callers, declaring module, and source location.*
 
 ---
 
