@@ -19,6 +19,9 @@ build/
 # Demo fixtures — local only, not for the repo
 tests/parser/fixtures/ecommerce-app/
 
+# Generated UI assets (copied from node_modules by postinstall)
+src/ui/3d-force-graph.min.js
+
 # OS
 .DS_Store
 Thumbs.db

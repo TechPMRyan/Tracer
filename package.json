@@ -7,6 +7,7 @@
     "tracer": "dist/cli/index.js"
   },
   "scripts": {
+    "postinstall": "node -e \"require('fs').copyFileSync('./node_modules/3d-force-graph/dist/3d-force-graph.min.js', './src/ui/3d-force-graph.min.js')\"",
     "build": "tsc",
     "dev": "ts-node src/cli/index.ts",
     "test": "vitest",
@@ -16,6 +17,7 @@
     "test:mutation": "stryker run"
   },
   "dependencies": {
+    "3d-force-graph": "^1.79.1",
     "chalk": "^5.0.0",
     "commander": "^12.0.0",
     "express": "^4.18.0",

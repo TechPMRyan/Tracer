@@ -6,7 +6,18 @@ import { registerRoutes } from './routes';
 export function startServer(port: number, dbPath: string): void {
   const app = express();
 
-  app.use(helmet());
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:'],
+        fontSrc: ["'self'", 'https:', 'data:'],
+        objectSrc: ["'none'"],
+      },
+    },
+  }));
   app.use(express.json());
 
   // Serve the UI
